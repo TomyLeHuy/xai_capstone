@@ -1,0 +1,101 @@
+---
+title: "Report for Capstone Project about the Bank Marketing Dataset in XAI"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+author : Tomy Le
+date : July 9, 2025
+---
+
+# 1. Exploratory Data Analysis (EDA)
+
+## 1.1. Setup
+
+First, let's import the necessary libraries for data manipulation and visualization. The `tidyverse` package includes `dplyr` (for data manipulation), `readr` (for reading data), `ggplot2` (for plotting), and `forcats` (for working with factors). We also load `gridExtra` to arrange plots.
+
+```{r setup, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(gridExtra) # For arranging multiple plots
+library(stringr)   # For string manipulation
+```
+
+## 1.2. Initial Data Inspection
+
+Let's get a first look at the data's structure, content, and statistical summary. For that, define the paths.
+
+```{r}
+# Define file paths
+bank_path <- "data/bank/bank.csv"
+bank_full_path <- "data/bank/bank-full.csv"
+bank_additional_path <- "data/bank-additional/bank-additional.csv"
+bank_additional_full_path <- "data/bank-additional/bank-additional-full.csv"
+
+# Load the datasets
+# read_delim is used for semicolon-separated files, similar to pd.read_csv(sep=';')
+bank_df <- read_delim(bank_path, delim = ";", show_col_types = FALSE)
+bank_full_df <- read_delim(bank_full_path, delim = ";", show_col_types = FALSE)
+bank_additional_df <- read_delim(bank_additional_path, delim = ";", show_col_types = FALSE)
+bank_additional_full_df <- read_delim(bank_additional_full_path, delim = ";", show_col_types = FALSE)
+```
+
+Let's inspect the dataframes.
+
+```{r}
+bank_df
+bank_full_df
+bank_additional_df
+bank_additional_full_df
+```
+**Verification Conclusion:** The shapes match the documentation, and the smaller files are confirmed to be true subsets of the larger files. We can now confidently proceed with `bank-additional-full.csv` for our analysis.
+
+## 1.3. Data Cleaning
+
+We'll check for any missing values and duplicates. For that we will need to see what column entries exists for each column in the first place.
+```{r}
+# Loop through each column to check for unique values
+for (col_name in colnames(bank_additional_full_df)) {
+  
+  unique_vals <- unique(bank_additional_full_df[[col_name]])
+  num_unique_vals <- length(unique_vals)
+  
+  cat(paste0("\n----- Column: '", col_name, "' -----\n"))
+  cat(paste0("Number of unique values: ", num_unique_vals, "\n\n"))
+  
+  # Set a threshold to decide whether to print all unique values
+  if (num_unique_vals < 15) {
+    cat(paste0("Unique values: ", paste(sort(unique_vals), collapse = ", "), "\n"))
+  } else {
+    cat(paste0("Values: [High Cardinality Feature - Sample: ", paste(head(unique_vals, 5), collapse = ", "), "...]\n"))
+  }
+}
+```
+## 1.4. Feature Analysis: Feature vs. Target
+
+Now we'll analyze how each feature relates to the subscription outcome `y`. This will help us identify potentially predictive features.
+
+### A. Categorical Features vs. Target ('y')
+```{r}
+# List of key categorical features to analyze
+cat_features_to_plot <- c('job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'poutcome')
+
+# Create a list to store the plots
+plot_list <- list()
+
+for (col in cat_features_to_plot) {
+  p <- ggplot(bank_additional_full_df, aes(y = fct_rev(fct_infreq(.data[[col]])), fill = y)) +
+    geom_bar(position = "stack") +
+    labs(title = paste0('"', str_to_title(col), '" vs. Subscription'), y = "", x = "Count", fill = "Subscribed") +
+    theme_minimal() +
+    scale_fill_viridis_d()
+  
+  plot_list[[col]] <- p
+}
+
+# Arrange and display plots using patchwork (part of tidyverse)
+#patchwork::wrap_plots(plot_list, ncol = 2)
+```
+
+
